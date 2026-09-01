@@ -3,16 +3,18 @@ import type { Priority } from "../types/sprint";
 import { MOCK_USERS } from "../data/mockIssues";
 
 interface FilterBarProps {
-    searchQuery: string,
-    onSearchChange: (query: string) => void,
-    selectedPriority: Priority | 'all',
-    onPriorityChange: (priority: Priority | 'all') => void,
-    selectedAssigneeId: string | 'all',
-    onAssigneeChange: (assigneeId: string | 'all') => void,
-    onOpenNewIssue?: () => void,
+    searchInputRef?: React.RefObject<HTMLInputElement | null>;
+    searchQuery: string;
+    onSearchChange: (query: string) => void;
+    selectedPriority: Priority | 'all';
+    onPriorityChange: (priority: Priority | 'all') => void;
+    selectedAssigneeId: string | 'all';
+    onAssigneeChange: (assigneeId: string | 'all') => void;
+    onOpenNewIssue?: () => void;
 };
 
 export function FilterBar({
+    searchInputRef,
     searchQuery,
     onSearchChange,
     selectedPriority,
@@ -27,13 +29,14 @@ export function FilterBar({
                 <div className="relative flex-1 max-w-md">
                     <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                     <input
+                        ref={searchInputRef}
                         type="text"
                         value={searchQuery}
                         onChange={(e) => onSearchChange(e.target.value)}
                         placeholder="Search issues by title, ID or tags..."
                         className="w-full pl-9 pr-8 py-1.5 bg-slate-900 border border-slate-800 focus:border-sky-500/80 rounded-lg text-slate-100 placeholder-slate-500 text-sm outline-none transition-colors"
                     />
-                    {searchQuery && (
+                    {searchQuery ? (
                         <button
                             type="button"
                             onClick={() => onSearchChange("")}
@@ -41,6 +44,10 @@ export function FilterBar({
                         >
                             <X className="w-3.5 h-3.5" />
                         </button>
+                    ) : (
+                        <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono text-slate-500 bg-slate-950/80 border border-slate-800 rounded pointer-events-none">
+                            <span className="text-[9px]">⌘</span>K
+                        </kbd>
                     )}
                 </div>
                 <div className="relative">

@@ -7,10 +7,10 @@ interface KanbanColumnProps {
     issues: Issue[];
     onAddIssue?: (status: Status) => void;
     onCardClick?: (issue: Issue) => void;
+    onMoveIssue?: (issueId: string, newStatus: Status) => void;
 }
 
-export function KanbanColumn({ column, issues, onAddIssue, onCardClick }: KanbanColumnProps) {
-    // TODO: Call useMutation for moving cards between columns
+export function KanbanColumn({ column, issues, onAddIssue, onCardClick, onMoveIssue }: KanbanColumnProps) {
 
     const getStatusDotColor = (status: Status) => {
         switch (status) {
@@ -26,7 +26,20 @@ export function KanbanColumn({ column, issues, onAddIssue, onCardClick }: Kanban
     };
 
     return (
-        <div className="w-80 flex-shrink-0 flex flex-col bg-slate-900/50 rounded-xl border border-slate-800/80 p-3 max-h-full">
+        <div
+            onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+            }}
+            onDrop={(e) => {
+                e.preventDefault();
+                const issueId = e.dataTransfer.getData("text/plain");
+                if (issueId && onMoveIssue) {
+                    onMoveIssue(issueId, column.id);
+                }
+            }}
+            className="w-80 flex-shrink-0 flex flex-col bg-slate-900/50 rounded-xl border border-slate-800/80 p-3 max-h-full transition-colors"
+        >
             <div className="flex items-center justify-between px-1 py-1.5 mb-2">
                 <div className="flex items-center gap-2">
                     <span className={`w-2.5 h-2.5 rounded-full ring-4 ${getStatusDotColor(column.id)}`} />

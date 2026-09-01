@@ -116,8 +116,15 @@ export function Sidebar({ activeTab = "board", onSelectTab }: SidebarProps) {
 
       {/* 5. Footer Settings */}
       <div className="p-3 border-t border-slate-800">
-        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-900/50 transition-colors">
-          <Settings className="w-4 h-4 text-slate-500" />
+        <button
+          onClick={() => onSelectTab?.("settings")}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+            activeTab === "settings"
+              ? "bg-slate-900 text-sky-400 border border-slate-800"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/50"
+          }`}
+        >
+          <Settings className={`w-4 h-4 ${activeTab === "settings" ? "text-sky-400" : "text-slate-500"}`} />
           <span>Workspace Settings</span>
         </button>
       </div>

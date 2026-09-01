@@ -41,6 +41,11 @@ export function IssueCard({ issue, onClick }: IssueCardProps) {
 
     return (
         <div
+            draggable
+            onDragStart={(e) => {
+                e.dataTransfer.setData("text/plain", issue.id);
+                e.dataTransfer.effectAllowed = "move";
+            }}
             onClick={() => onClick?.(issue)}
             className="group relative bg-slate-900 hover:bg-slate-800/60 border border-slate-800 hover:border-slate-700/80 rounded-lg p-3.5 shadow-sm transition-all duration-150 cursor-grab active:cursor-grabbing select-none"
         >

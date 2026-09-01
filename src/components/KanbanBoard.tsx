@@ -6,9 +6,10 @@ interface KanbanBoardProps {
     issues: Issue[];
     onAddIssue?: (status: Status) => void;
     onCardClick?: (issue: Issue) => void;
+    onMoveIssue?: (issueId: string, newStatus: Status) => void;
 }
 
-export function KanbanBoard({ issues, onAddIssue, onCardClick }: KanbanBoardProps) {
+export function KanbanBoard({ issues, onAddIssue, onCardClick, onMoveIssue }: KanbanBoardProps) {
     // TODO: Call useQuery to fetch issues/board data
 
     return (
@@ -22,6 +23,7 @@ export function KanbanBoard({ issues, onAddIssue, onCardClick }: KanbanBoardProp
                         issues={columnIssues}
                         onAddIssue={onAddIssue}
                         onCardClick={onCardClick}
+                        onMoveIssue={onMoveIssue}
                     />
                 );
             })}
