@@ -38,7 +38,7 @@ export function KanbanColumn({ column, issues, onAddIssue, onCardClick, onMoveIs
                     onMoveIssue(issueId, column.id);
                 }
             }}
-            className="w-80 flex-shrink-0 flex flex-col bg-slate-900/50 rounded-xl border border-slate-800/80 p-3 max-h-full transition-colors"
+            className="flex-1 min-w-0 w-full flex flex-col bg-slate-900/40 rounded-lg border border-slate-800/60 p-2.5 max-h-full transition-colors"
         >
             <div className="flex items-center justify-between px-1 py-1.5 mb-2">
                 <div className="flex items-center gap-2">
@@ -69,7 +69,7 @@ export function KanbanColumn({ column, issues, onAddIssue, onCardClick, onMoveIs
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 custom-scrollbar min-h-[200px]">
+            <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 custom-scrollbar min-h-[150px]">
                 {issues.length > 0 ? (
                     issues.map((issue) => (
                         <IssueCard key={issue.id} issue={issue} onClick={onCardClick} />

@@ -2,16 +2,18 @@
 node_modules/
 .pnpm-store/
 
-# Build & Dist
+# Build & Output
 dist/
 dist-ssr/
 build/
 *.tsbuildinfo
 
-# Environment variables (CRITICAL: Do NOT commit secrets)
+# Environment variables
 .env
-.env.*
-!.env.example
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Logs
 logs/
@@ -21,15 +23,19 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Caches & Tooling
+# Vite & Tooling Cache
 .vite/
-.turbo/
 
-# OS and IDE Files
+# Editor & System Files
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
 .idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 .DS_Store
 Thumbs.db
 Desktop.ini

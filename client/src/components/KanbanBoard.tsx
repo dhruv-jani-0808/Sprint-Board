@@ -13,7 +13,7 @@ export function KanbanBoard({ issues, onAddIssue, onCardClick, onMoveIssue }: Ka
     // TODO: Call useQuery to fetch issues/board data
 
     return (
-        <div className="flex-1 overflow-x-auto p-6 flex gap-5 items-start min-h-0 select-none">
+        <div className="flex-1 p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5 items-start min-h-0 overflow-y-auto select-none">
             {COLUMNS.map((column) => {
                 const columnIssues = issues.filter((issue) => issue.status === column.id);
                 return (
