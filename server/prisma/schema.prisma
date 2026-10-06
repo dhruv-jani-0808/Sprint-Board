@@ -1,0 +1,145 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum Status {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum SprintStatus {
+  PLANNING
+  ACTIVE
+  COMPLETED
+}
+
+model User {
+  id            String            @id @default(uuid())
+  email         String            @unique
+  name          String
+  passwordHash  String
+  avatarUrl     String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  ownedWorkspaces  Workspace[]       @relation("WorkspaceOwner")
+  memberships      WorkspaceMember[]
+  assignedIssues   Issue[]           @relation("IssueAssignee")
+  createdIssues    Issue[]           @relation("IssueCreator")
+  activities       Activity[]
+
+  @@map("users")
+}
+
+model Workspace {
+  id          String            @id @default(uuid())
+  name        String
+  slug        String            @unique
+  ownerId     String
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  owner       User              @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     WorkspaceMember[]
+  sprints     Sprint[]
+  issues      Issue[]
+
+  @@index([slug])
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String    @id @default(uuid())
+  workspaceId String
+  userId      String
+  role        Role      @default(MEMBER)
+  createdAt   DateTime  @default(now())
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@map("workspace_members")
+}
+
+model Sprint {
+  id          String        @id @default(uuid())
+  workspaceId String
+  name        String
+  status      SprintStatus  @default(PLANNING)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  issues      Issue[]
+
+  @@index([workspaceId, status])
+  @@map("sprints")
+}
+
+model Issue {
+  id          String      @id @default(uuid())
+  key         String      // e.g. "DEV-101"
+  title       String
+  description String?     @db.Text
+  status      Status      @default(TODO)
+  priority    Priority    @default(MEDIUM)
+  order       Float       @default(0) // Float allows easy fractional reordering
+  tags        String[]    @default([])
+  
+  workspaceId String
+  sprintId    String?
+  assigneeId  String?
+  creatorId   String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  sprint      Sprint?     @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+  assignee    User?       @relation("IssueAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  creator     User        @relation("IssueCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  activities  Activity[]
+
+  // ⚡ Strategic Indexes for sub-millisecond board filtering & ordering
+  @@index([workspaceId, status])
+  @@index([sprintId, status, order])
+  @@index([assigneeId, status])
+  @@map("issues")
+}
+
+model Activity {
+  id        String    @id @default(uuid())
+  issueId   String
+  userId    String
+  action    String    // e.g. "STATUS_CHANGED", "ASSIGNED"
+  metadata  Json?     // e.g. { "from": "TODO", "to": "IN_PROGRESS" }
+  createdAt DateTime  @default(now())
+
+  issue     Issue     @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([issueId, createdAt])
+  @@map("activities")
+}
