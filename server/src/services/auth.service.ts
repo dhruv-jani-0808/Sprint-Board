@@ -61,3 +61,53 @@ export const registerUser = async (name: string, email: string, password: string
         token,
     };
 }
+
+export const loginUser = async (email: string, password: string) => {
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if(!user) {
+        throw new Error("Invalid email or password");
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    if(!isPasswordValid) {
+        throw new Error("Invalid email or password");
+    }
+
+    const token = generateToken(user.id, user.email);
+    return {
+        user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            avatarUrl: user.avatarUrl,
+        },
+        token,
+    }
+};
+
+export const getCurrentUser = async (userId: string) => {
+    const user = await prisma.user.findUnique({
+        where: {
+            id: userId
+        },
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+            createdAt: true,
+            memberships: {
+                include: {
+                    workspace: true,
+                },
+            },
+        },
+    });
+
+    if(!user) {
+        throw new Error("User not found");
+    }
+
+    return user;
+}
