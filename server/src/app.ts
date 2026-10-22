@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/auth.routes";
 import workspaceRoutes from "./routes/workspace.routes";
 import sprintRoutes from "./routes/sprint.routes";
+import issueRoutes from "./routes/issue.routes";
 
 dotenv.config();
 
@@ -20,8 +21,9 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use("/api/auth", authRoutes);
-app.use("api/workspace", workspaceRoutes);
-app.use("api/sprints", sprintRoutes);
+app.use("/api/workspaces", workspaceRoutes);
+app.use("/api/sprints", sprintRoutes);
+app.use("/api/issues", issueRoutes);
 
 app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", timeStamp: new Date().toISOString() });
