@@ -202,7 +202,7 @@ const deleteIssue = async (issueId: string, sprintId?: string) => {
         await deleteCache(`board:${targetSprintId}`);
     }
 
-    return { success: true };
+    return { success: true, workspaceId: issue.workspaceId };
 };
 
 export {

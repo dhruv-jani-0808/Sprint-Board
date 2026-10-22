@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      http:
+        specifier: 0.0.1-security
+        version: 0.0.1-security
     devDependencies:
       '@types/node':
         specifier: ^26.6.4
@@ -17,6 +21,9 @@ packages:
   '@types/node@26.6.4':
     resolution: {integrity: sha512-ldVPDCzj7fsaGZrLB0NuHuTvJcsNasysBAqMolr/cgxrLd1xbqxIr3XJiPnHHJUCxj5sNF1vnRj9aWnrVh5Jcg==}
 
+  http@0.0.1-security:
+    resolution: {integrity: sha512-RnDvP10Ty9FxqOtPZuxtebw1j4L/WiqNMDtuc1YMH1XQm5TgDRaR1G9u8upL6KD1bXHSp9eSXo/ED+8Q7FAr+g==}
+
   undici-types@8.9.0:
     resolution: {integrity: sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==}
 
@@ -25,5 +32,7 @@ snapshots:
   '@types/node@26.6.4':
     dependencies:
       undici-types: 8.9.0
+
+  http@0.0.1-security: {}
 
   undici-types@8.9.0: {}
