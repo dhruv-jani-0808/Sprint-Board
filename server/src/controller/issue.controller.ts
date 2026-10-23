@@ -3,6 +3,7 @@ import { AuthenticatedRequest } from "../middlewares/auth.middleware";
 import * as issueService from "../services/issue.service";
 import { Status, Priority } from "@prisma/client";
 import { broadcastToWorkspace } from "../sockets/wsServer";
+import { queueEmailNotification, queueActivityLog } from "../queues/queue";
 
 const create = async (req: AuthenticatedRequest, res: Response) => {
     try {
@@ -30,6 +31,21 @@ const create = async (req: AuthenticatedRequest, res: Response) => {
             payload: issue,
         });
         
+        queueActivityLog({
+            issueId: issue.id,
+            userId: creatorId,
+            action: "ISSUE_CREATED",
+            metadata: { title: issue.title, priority: issue.priority },
+        });
+
+        if(issue.assignee && issue.assignee.email) {
+            queueEmailNotification({
+                to: issue.assignee.email,
+                subject: `Assigned: ${issue.key} - ${issue.title}`,
+                body: `Hi ${issue.assignee.name}, you have been assigned to ${issue.key}.`,
+            });
+        }
+
         return res.status(201).json({ issue });
     } catch (err: any) {
         return res.status(400).json({ message: err.message });
@@ -95,6 +111,15 @@ const move = async (req: AuthenticatedRequest, res: Response) => {
             payload: issue,
         });
         
+        if(req.user?.userId) {
+            queueActivityLog({
+                issueId: issue.id,
+                userId: req.user.userId,
+                action: "STATUS_CHANGED",
+                metadata: { newStatus: status, newOrder: order },
+            });
+        }
+        
         return res.status(200).json({ issue });
     } catch (err: any) {
         return res.status(400).json({ message: err.message });
@@ -107,11 +132,20 @@ const update = async (req: AuthenticatedRequest, res: Response) => {
         const { sprintId, ...updateData } = req.body;
         
         const issue = await issueService.updateIssue(id.toString(), updateData, sprintId);
-
+        
         broadcastToWorkspace(issue.workspaceId, {
             type: "ISSUE_UPDATED",
             payload: issue,
         });
+
+        if(req.user?.userId) {
+            queueActivityLog({
+                issueId: issue.id,
+                userId: req.user.userId,
+                action: "ISSUE_UPDATED",
+                metadata: updateData,
+            });
+        }
         
         return res.status(200).json({ issue });
     } catch (err: any) {

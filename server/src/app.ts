@@ -10,6 +10,7 @@ import sprintRoutes from "./routes/sprint.routes";
 import issueRoutes from "./routes/issue.routes";
 
 import { initWebSocketServer } from "./sockets/wsServer";
+import { initWorkers } from "./queues/worker";
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 
 initWebSocketServer(server);
+initWorkers();
 
 app.use(cors({
     origin: process.env.CLIENT_URL || "http://localhost:5173",
