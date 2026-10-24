@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Sidebar } from "./components/layout/sidebar";
 import { Navbar } from "./components/layout/Navbar";
@@ -11,21 +12,103 @@ import { SettingsView } from "./components/SettingsView";
 import { AuthPage } from "./components/auth/AuthPage";
 import { LandingPage } from "./components/landing/LandingPage";
 
-import { INITIAL_ISSUES, MOCK_USERS } from "./data/mockIssues";
+import { authApi, sprintApi, issueApi } from "./api/client";
+import { useWebSocket } from "./hooks/useWebSocket";
+import { INITIAL_ISSUES } from "./data/mockIssues";
 import type { Issue, Priority, Status } from "./types/sprint";
 
 export default function App() {
+    const queryClient = useQueryClient();
     const [currentView, setCurrentView] = useState<"landing" | "auth" | "app">("landing");
     const [activeTab, setActiveTab] = useState<"board" | "backlog" | "analytics" | "settings">("board");
 
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedPriority, setSelectedPriority] = useState<Priority | "all">("all");
     const [selectedAssigneeId, setSelectedAssigneeId] = useState<string | "all">("all");
-    const [issues, setIssues] = useState<Issue[]>(INITIAL_ISSUES);
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [defaultModalStatus, setDefaultModalStatus] = useState<Status>("todo");
     const searchInputRef = useRef<HTMLInputElement>(null);
+
+    const { data: authData } = useQuery({
+        queryKey: ["auth", "me"],
+        queryFn: authApi.getMe,
+        retry: false,
+    });
+
+    const currentUser = authData?.user;
+    const currentWorkspace = currentUser?.memberships?.[0]?.workspace;
+
+    useEffect(() => {
+        if (currentUser && currentView === "landing") {
+            setCurrentView("app");
+        }
+    }, [currentUser, currentView]);
+
+    const { data: sprintData } = useQuery({
+        queryKey: ["sprint", "active", currentWorkspace?.id],
+        queryFn: () => sprintApi.getActive(currentWorkspace.id),
+        enabled: !!currentWorkspace?.id,
+    });
+
+    const activeSprint = sprintData?.sprint;
+
+    const { data: boardData } = useQuery({
+        queryKey: ["board", activeSprint?.id],
+        queryFn: () => issueApi.getBoard(activeSprint.id),
+        enabled: !!activeSprint?.id,
+    });
+
+    const rawIssues: any[] = boardData?.issues && boardData.issues.length > 0
+        ? boardData.issues
+        : INITIAL_ISSUES;
+
+    const issues: Issue[] = useMemo(() => {
+        return rawIssues.map((i: any) => ({
+            id: i.key || i.id,
+            backendId: i.id,
+            title: i.title,
+            description: i.description || "",
+            status: (i.status?.toLowerCase() || "todo") as Status,
+            priority: (i.priority?.toLowerCase() || "medium") as Priority,
+            assignee: i.assignee
+                ? {
+                    id: i.assignee.id,
+                    name: i.assignee.name,
+                    email: i.assignee.email || "",
+                    avatar: i.assignee.avatarUrl || i.assignee.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
+                }
+                : null,
+            tags: i.tags || [],
+            createdAt: i.createdAt || new Date().toISOString(),
+            order: i.order || 0,
+        }));
+    }, [rawIssues]);
+
+    useWebSocket(currentWorkspace?.id, activeSprint?.id);
+
+    const createIssueMutation = useMutation({
+        mutationFn: (newIssueData: any) =>
+            issueApi.create({
+                ...newIssueData,
+                workspaceId: currentWorkspace?.id,
+                sprintId: activeSprint?.id,
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["board", activeSprint?.id] });
+        },
+    });
+
+    const moveIssueMutation = useMutation({
+        mutationFn: ({ issueId, newStatus, order }: { issueId: string; newStatus: Status; order: number }) => {
+            const targetIssue = rawIssues.find((i: any) => i.id === issueId || i.key === issueId);
+            const actualId = targetIssue?.id || issueId;
+            return issueApi.move(actualId, newStatus.toUpperCase(), order, activeSprint?.id);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["board", activeSprint?.id] });
+        },
+    });
 
     const handleCreateIssue = (newIssueData: {
         title: string;
@@ -35,21 +118,14 @@ export default function App() {
         assigneeId: string;
         tags: string[];
     }) => {
-        const assigneeUser = MOCK_USERS.find((u) => u.id === newIssueData.assigneeId) || null;
-
-        const newIssue: Issue = {
-            id: `DEV-${100 + issues.length + 1}`,
+        createIssueMutation.mutate({
             title: newIssueData.title,
             description: newIssueData.description,
-            status: newIssueData.status,
-            priority: newIssueData.priority,
-            assignee: assigneeUser,
+            status: newIssueData.status.toUpperCase(),
+            priority: newIssueData.priority.toUpperCase(),
+            assigneeId: newIssueData.assigneeId || undefined,
             tags: newIssueData.tags,
-            createdAt: new Date().toISOString(),
-            order: 0,
-        };
-
-        setIssues((prevIssues) => [newIssue, ...prevIssues]);
+        });
     };
 
     const handleOpenCreateModal = (status: Status = "todo") => {
@@ -58,32 +134,32 @@ export default function App() {
     };
 
     const handleMoveIssue = (issueId: string, newStatus: Status) => {
-        setIssues((prevIssues) =>
-            prevIssues.map((issue) => 
-                issue.id === issueId ? { ...issue, status: newStatus } : issue
-            )
-        );
+        moveIssueMutation.mutate({
+            issueId,
+            newStatus,
+            order: Date.now(),
+        });
     };
 
     const handleMoveToSprint = (issueId: string) => {
         handleMoveIssue(issueId, "todo");
-    }
+    };
 
     const filteredIssues = useMemo(() => {
         return issues.filter((issue) => {
-            if(searchQuery.trim()) {
+            if (searchQuery.trim()) {
                 const query = searchQuery.toLowerCase();
                 const matchesId = issue.id.toLowerCase().includes(query);
                 const matchedTitle = issue.title.toLowerCase().includes(query);
                 const matchedTag = issue.tags.some((t) => t.toLowerCase().includes(query));
 
-                if(!matchesId && !matchedTitle && !matchedTag) return false;
+                if (!matchesId && !matchedTitle && !matchedTag) return false;
             }
 
-            if(selectedPriority !== "all" && issue.priority !== selectedPriority) return false;
+            if (selectedPriority !== "all" && issue.priority !== selectedPriority) return false;
 
-            if(selectedAssigneeId !== "all") {
-                if(!issue.assignee || issue.assignee.id !== selectedAssigneeId) return false;
+            if (selectedAssigneeId !== "all") {
+                if (!issue.assignee || issue.assignee.id !== selectedAssigneeId) return false;
             }
 
             return true;
@@ -92,7 +168,7 @@ export default function App() {
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
                 e.preventDefault();
                 searchInputRef.current?.focus();
                 return;
@@ -101,21 +177,21 @@ export default function App() {
             const activeTag = document.activeElement?.tagName.toLowerCase();
             const isTyping = activeTag === "input" || activeTag === "textarea" || activeTag === "select";
 
-            if(isTyping) return;
+            if (isTyping) return;
 
-            if(e.key.toLowerCase() === "c" || e.key.toLowerCase() === "n") {
+            if (e.key.toLowerCase() === "c" || e.key.toLowerCase() === "n") {
                 e.preventDefault();
                 handleOpenCreateModal("todo");
             }
 
-            if(e.key == "Escape") setIsCreateModalOpen(false);
+            if (e.key === "Escape") setIsCreateModalOpen(false);
         };
 
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, []);
 
-    if(currentView === "landing") {
+    if (currentView === "landing") {
         return (
             <LandingPage
                 onLaunchApp={() => setCurrentView("app")}
@@ -124,11 +200,18 @@ export default function App() {
         );
     }
 
-    if(currentView === "auth") {
-        return <AuthPage onLoginSuccess={() => setCurrentView("app")} />;
+    if (currentView === "auth") {
+        return (
+            <AuthPage
+                onLoginSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+                    setCurrentView("app");
+                }}
+            />
+        );
     }
 
-     return (
+    return (
         <div className="flex h-screen overflow-hidden bg-slate-950 text-slate-100 select-none">
             <Sidebar
                 activeTab={activeTab}
@@ -136,7 +219,7 @@ export default function App() {
             />
             <div className="flex-1 flex flex-col min-w-0 h-screen">
                 <Navbar onOpenNewIssue={() => handleOpenCreateModal("todo")} />
-                
+
                 {activeTab === "board" && (
                     <FilterBar
                         searchInputRef={searchInputRef}

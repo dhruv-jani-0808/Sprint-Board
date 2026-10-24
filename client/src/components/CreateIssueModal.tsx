@@ -15,9 +15,10 @@ interface CreateIssueModalProps {
     tags: string[];
   }) => void;
   defaultStatus: Status;
+  users?: any[];
 }
 
-export function CreateIssueModal({isOpen, onClose, onCreateIssue, defaultStatus}: CreateIssueModalProps) {
+export function CreateIssueModal({isOpen, onClose, onCreateIssue, defaultStatus, users}: CreateIssueModalProps) {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [status, setStatus] = useState<Status>(defaultStatus);
@@ -120,7 +121,7 @@ export function CreateIssueModal({isOpen, onClose, onCreateIssue, defaultStatus}
                                 className="w-full bg-slate-950 border border-slate-800 focus:border-sky-500/80 rounded-lg px-3 py-2 text-sm text-slate-200 outline-none transition-colors cursor-pointer"
                             >
                                 <option value="">Unassigned</option>
-                                {MOCK_USERS.map((user) => (
+                                {(users && users.length > 0 ? users : MOCK_USERS).map((user) => (
                                     <option key={user.id} value={user.id}>
                                         {user.name}
                                     </option>

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Flame, ArrowRight, Lock, Mail, User, Eye, EyeOff } from "lucide-react";
+import { authApi } from "../../api/client";
 
 interface AuthPageProps {
     onLoginSuccess?: () => void;
@@ -11,10 +12,29 @@ export function AuthPage({ onLoginSuccess }: AuthPageProps) {
     const [password, setPassword] = useState("");
     const [fullName, setFullName] = useState("");
     const [showPassword, setShowPassword] = useState(false);
-    
-    const handleSubmit = (e: FormEvent) => {
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
-        onLoginSuccess?.();
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            if(isSignUp) {
+                await authApi.register(fullName, email, password);
+            }
+            else {
+                await authApi.login(email, password);
+            }
+            onLoginSuccess?.();
+        }
+        catch(err: any) {
+            setError(err.message || "Authentication failed");
+        }
+        finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -55,6 +75,13 @@ export function AuthPage({ onLoginSuccess }: AuthPageProps) {
                         or email
                     </span>
                 </div>
+
+                {error && (
+                    <div className="bg-red-950/50 border border-red-800/60 text-red-300 text-xs px-3 py-2 rounded-lg">
+                        {error}
+                    </div>
+                )}
+
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {isSignUp && (
                         <div>
@@ -122,9 +149,14 @@ export function AuthPage({ onLoginSuccess }: AuthPageProps) {
                     </div>
                     <button
                         type="submit"
+                        disabled={isLoading}
                         className="w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs py-2.5 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all mt-2"
                     >
-                        <span>{isSignUp ? "Create SprintHub Account" : "Sign In to SprintHub"}</span>
+                        <span>
+                            {isLoading 
+                                ? (isSignUp ? "Creating Account..." : "Signing In...")
+                                : (isSignUp ? "Create SprintHub Account" : "Sign In to SprintHub")}
+                        </span>
                         <ArrowRight className="w-4 h-4" />
                     </button>
                 </form>
