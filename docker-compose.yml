@@ -1,0 +1,47 @@
+services:
+  # 1. In-memory Cache & Message Queue
+  redis:
+    image: redis:alpine
+    container_name: sprinthub-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - sprinthub-network
+
+  # 2. Node.js Backend API & WebSockets
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: sprinthub-server
+    restart: always
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./server/.env
+    environment:
+      # Override REDIS_URL to connect to the internal container network
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    networks:
+      - sprinthub-network
+
+  # 3. React Frontend (served via Nginx)
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: sprinthub-client
+    restart: always
+    ports:
+      - "5173:80"
+    depends_on:
+      - server
+    networks:
+      - sprinthub-network
+
+networks:
+  sprinthub-network:
+    driver: bridge

@@ -59,9 +59,11 @@ export default function App() {
         enabled: !!activeSprint?.id,
     });
 
+    const [mockIssues, setMockIssues] = useState<any[]>(INITIAL_ISSUES);
+
     const rawIssues: any[] = boardData?.issues && boardData.issues.length > 0
         ? boardData.issues
-        : INITIAL_ISSUES;
+        : mockIssues;
 
     const issues: Issue[] = useMemo(() => {
         return rawIssues.map((i: any) => ({
@@ -134,6 +136,13 @@ export default function App() {
     };
 
     const handleMoveIssue = (issueId: string, newStatus: Status) => {
+        // If viewing mock issues before DB issues exist, update local state immediately
+        if (!boardData?.issues || boardData.issues.length === 0) {
+            setMockIssues((prev) =>
+                prev.map((i) => (i.id === issueId || i.key === issueId ? { ...i, status: newStatus } : i))
+            );
+        }
+
         moveIssueMutation.mutate({
             issueId,
             newStatus,

@@ -105,6 +105,10 @@ const move = async (req: AuthenticatedRequest, res: Response) => {
             Number(order),
             sprintId
         );
+
+        if (!issue) {
+            return res.status(200).json({ message: "Mock issue moved locally", issue: null });
+        }
         
         broadcastToWorkspace(issue.workspaceId, {
             type: "ISSUE_MOVED",

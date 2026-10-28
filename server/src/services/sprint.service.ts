@@ -54,7 +54,31 @@ const getActiveSprint = async (workspaceId: string) => {
         },
     });
 
-    return planningSprint;
+    if (planningSprint) {
+        return planningSprint;
+    }
+
+    // Auto-create active Sprint 1 if no sprint exists in this workspace
+    const newSprint = await prisma.sprint.create({
+        data: {
+            workspaceId,
+            name: "Sprint 1",
+            status: "ACTIVE",
+            startDate: new Date(),
+        },
+        include: {
+            issues: {
+                include: {
+                    assignee: true,
+                },
+                orderBy: {
+                    order: "asc",
+                },
+            },
+        },
+    });
+
+    return newSprint;
 };
 
 const startSprint = async (sprintId: string, workspaceId: string) => {

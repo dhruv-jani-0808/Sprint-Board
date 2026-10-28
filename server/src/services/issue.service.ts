@@ -148,8 +148,19 @@ const moveIssue = async (
     newOrder: number,
     sprintId?: string
 ) => {
+    // 1. Locate issue by UUID id or DEV- key
+    const existing = await prisma.issue.findFirst({
+        where: {
+            OR: [{ id: issueId }, { key: issueId }],
+        },
+    });
+
+    if (!existing) {
+        return null;
+    }
+
     const issue = await prisma.issue.update({
-        where: { id: issueId },
+        where: { id: existing.id },
         data: {
             status: newStatus,
             order: newOrder,
@@ -162,7 +173,7 @@ const moveIssue = async (
     });
 
     const targetSprintId = sprintId || issue.sprintId;
-    if(targetSprintId) {
+    if (targetSprintId) {
         await deleteCache(`board:${targetSprintId}`);
     }
 
