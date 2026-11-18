@@ -22,7 +22,10 @@ initWebSocketServer(server);
 initWorkers();
 
 app.use(cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: (origin, callback) => {
+        // Allow requests with no origin or any origin in dev/demo
+        callback(null, true);
+    },
     credentials: true,
 }));
 app.use(express.json());

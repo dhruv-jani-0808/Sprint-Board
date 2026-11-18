@@ -8,7 +8,11 @@ export function useWebSocket(workspaceId?: string, sprintId?: string) {
     useEffect(() => {
         if(!workspaceId) return;
 
-        const ws = new WebSocket("ws://localhost:5000");
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = window.location.hostname !== "localhost"
+            ? `${protocol}//${window.location.hostname}:5000`
+            : "ws://localhost:5000";
+        const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
         ws.onopen = () => {
