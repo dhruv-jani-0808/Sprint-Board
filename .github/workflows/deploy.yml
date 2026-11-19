@@ -1,0 +1,55 @@
+name: SprintHub CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  # JOB 1: CI (The safety gate)
+  test:
+    name: Typecheck & Build Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Validate Server (TypeScript & Prisma)
+        run: |
+          cd server
+          pnpm install --frozen-lockfile --config.strict-dep-builds=false
+          npx prisma generate
+          pnpm build
+
+      - name: Validate Client (React & Vite)
+        run: |
+          cd client
+          pnpm install --frozen-lockfile --config.strict-dep-builds=false
+          pnpm build
+
+  # JOB 2: CD (SSH & Docker rebuild)
+  deploy:
+    name: Deploy to AWS EC2
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: SSH into EC2 & Rebuild Containers
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd sprinthub
+            git pull origin main
+            docker compose up --build -d
