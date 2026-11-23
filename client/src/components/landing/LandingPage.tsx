@@ -3,9 +3,11 @@ import { Flame, ArrowRight, Kanban, Zap, Shield, Sparkles } from "lucide-react";
 interface LandingPageProps {
     onLaunchApp?: () => void;
     onOpenLogin?: () => void;
+    currentUser?: any;
+    onLogout?: () => void;
 }
 
-export function LandingPage({ onLaunchApp, onOpenLogin }: LandingPageProps) {
+export function LandingPage({ onLaunchApp, onOpenLogin, currentUser, onLogout }: LandingPageProps) {
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-sky-500/30 selection:text-sky-200 select-none flex flex-col justify-between">
             {/* Header */}
@@ -29,20 +31,49 @@ export function LandingPage({ onLaunchApp, onOpenLogin }: LandingPageProps) {
                     </a>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button
-                        type="button"
-                        onClick={onOpenLogin}
-                        className="text-xs font-semibold text-slate-300 hover:text-slate-100 px-3 py-1.5 transition-colors"
-                    >
-                        Log In
-                    </button>
-                    <button
-                        type="button"
-                        onClick={onLaunchApp}
-                        className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-lg shadow-sm transition-colors"
-                    >
-                        Launch App
-                    </button>
+                    {currentUser ? (
+                        <>
+                            <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs text-slate-300">
+                                <img
+                                    src={currentUser.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.name}`}
+                                    alt={currentUser.name}
+                                    className="w-5 h-5 rounded-full object-cover"
+                                />
+                                <span className="font-medium hidden sm:inline">{currentUser.name}</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={onLogout}
+                                className="text-xs font-semibold text-slate-400 hover:text-red-400 px-2 py-1.5 transition-colors cursor-pointer"
+                            >
+                                Log Out
+                            </button>
+                            <button
+                                type="button"
+                                onClick={onLaunchApp}
+                                className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-lg shadow-sm transition-colors cursor-pointer"
+                            >
+                                Go to Workspace →
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <button
+                                type="button"
+                                onClick={onOpenLogin}
+                                className="text-xs font-semibold text-slate-300 hover:text-slate-100 px-3 py-1.5 transition-colors cursor-pointer"
+                            >
+                                Log In
+                            </button>
+                            <button
+                                type="button"
+                                onClick={onLaunchApp}
+                                className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-lg shadow-sm transition-colors cursor-pointer"
+                            >
+                                Launch App
+                            </button>
+                        </>
+                    )}
                 </div>
             </header>
 
@@ -149,12 +180,18 @@ export function LandingPage({ onLaunchApp, onOpenLogin }: LandingPageProps) {
                     </div>
 
                     <div className="flex items-center gap-6 text-xs text-slate-400">
-                        <button type="button" onClick={onLaunchApp} className="hover:text-slate-200 transition-colors">
+                        <button type="button" onClick={onLaunchApp} className="hover:text-slate-200 transition-colors cursor-pointer">
                             Active Board
                         </button>
-                        <button type="button" onClick={onOpenLogin} className="hover:text-slate-200 transition-colors">
-                            Sign In
-                        </button>
+                        {currentUser ? (
+                            <button type="button" onClick={onLogout} className="hover:text-red-400 transition-colors cursor-pointer">
+                                Log Out ({currentUser.name})
+                            </button>
+                        ) : (
+                            <button type="button" onClick={onOpenLogin} className="hover:text-slate-200 transition-colors cursor-pointer">
+                                Sign In
+                            </button>
+                        )}
                         <a
                             href="https://github.com/dhruv-jani-0808/Sprint-Board"
                             target="_blank"

@@ -99,7 +99,22 @@ export const getCurrentUser = async (userId: string) => {
             createdAt: true,
             memberships: {
                 include: {
-                    workspace: true,
+                    workspace: {
+                        include: {
+                            members: {
+                                include: {
+                                    user: {
+                                        select: {
+                                            id: true,
+                                            name: true,
+                                            email: true,
+                                            avatarUrl: true,
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
                 },
             },
         },

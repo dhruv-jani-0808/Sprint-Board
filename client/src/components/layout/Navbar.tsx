@@ -1,12 +1,15 @@
-import { Plus, Layers } from "lucide-react";
+import { Plus, Layers, LogIn, LogOut } from "lucide-react";
 
 interface NavbarProps {
   onOpenNewIssue?: () => void;
+  currentUser?: any;
+  onOpenLogin?: () => void;
+  onLogout?: () => void;
 }
 
-export function Navbar({ onOpenNewIssue }: NavbarProps) {
+export function Navbar({ onOpenNewIssue, currentUser, onOpenLogin, onLogout }: NavbarProps) {
   return (
-    <header className="h-14 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-30">
+    <header className="h-14 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-30 select-none">
       <div className="flex items-center gap-2.5 text-sm font-medium">
         <div className="p-1.5 rounded-md bg-slate-900 border border-slate-800 text-slate-400">
           <Layers className="w-4 h-4 text-brand-500" />
@@ -34,11 +37,41 @@ export function Navbar({ onOpenNewIssue }: NavbarProps) {
 
         <button
           onClick={onOpenNewIssue}
-          className="bg-brand-500 hover:bg-brand-600 active:scale-95 text-slate-950 font-semibold text-xs px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 shadow-sm shadow-brand-500/10"
+          className="bg-brand-500 hover:bg-brand-600 active:scale-95 text-slate-950 font-semibold text-xs px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 shadow-sm shadow-brand-500/10 cursor-pointer"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
           <span>New Issue</span>
         </button>
+
+        {currentUser ? (
+          <div className="flex items-center gap-2.5 pl-2 border-l border-slate-800">
+            <div className="flex items-center gap-2">
+              <img
+                src={currentUser.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.name}`}
+                alt={currentUser.name}
+                className="w-7 h-7 rounded-full border border-slate-700 object-cover"
+              />
+              <span className="text-xs font-semibold text-slate-200 hidden md:inline">
+                {currentUser.name}
+              </span>
+            </div>
+            <button
+              onClick={onLogout}
+              className="text-slate-400 hover:text-red-400 p-1.5 rounded-md hover:bg-slate-900 transition-colors"
+              title="Log Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={onOpenLogin}
+            className="bg-slate-900 hover:bg-slate-800 text-sky-400 border border-slate-800 hover:border-sky-500/50 font-semibold text-xs px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 shadow-sm cursor-pointer ml-1"
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            <span>Sign In / Sign Up</span>
+          </button>
+        )}
       </div>
     </header>
   );

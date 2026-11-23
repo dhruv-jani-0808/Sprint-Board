@@ -74,6 +74,16 @@ export default function App() {
     const currentUser = authData?.user;
     const currentWorkspace = currentUser?.memberships?.[0]?.workspace;
 
+    const handleLogout = async () => {
+        try {
+            await authApi.logout();
+        } catch (e) {
+            console.error("Logout error", e);
+        }
+        queryClient.clear();
+        navigate("landing");
+    };
+
     const { data: sprintData } = useQuery({
         queryKey: ["sprint", "active", currentWorkspace?.id],
         queryFn: () => sprintApi.getActive(currentWorkspace.id),
@@ -88,12 +98,7 @@ export default function App() {
         enabled: !!activeSprint?.id,
     });
 
-    // Clean initial issues (no mock cards)
-    const [localIssues, setLocalIssues] = useState<any[]>([]);
-
-    const rawIssues: any[] = boardData?.issues && boardData.issues.length > 0
-        ? boardData.issues
-        : localIssues;
+    const rawIssues: any[] = boardData?.issues || [];
 
     const workspaceMembers = useMemo(() => {
         if (!currentUser) return [];
@@ -150,13 +155,43 @@ export default function App() {
         },
     });
 
+    // Instant Optimistic Drag-and-Drop Mutation (0ms delay)
     const moveIssueMutation = useMutation({
         mutationFn: ({ issueId, newStatus, order }: { issueId: string; newStatus: Status; order: number }) => {
             const targetIssue = rawIssues.find((i: any) => i.id === issueId || i.key === issueId);
             const actualId = targetIssue?.id || issueId;
             return issueApi.move(actualId, newStatus.toUpperCase(), order, activeSprint?.id);
         },
-        onSuccess: () => {
+        onMutate: async ({ issueId, newStatus }) => {
+            // Cancel any outgoing refetches so they don't overwrite our optimistic update
+            await queryClient.cancelQueries({ queryKey: ["board", activeSprint?.id] });
+
+            // Snapshot the previous state
+            const previousBoard = queryClient.getQueryData(["board", activeSprint?.id]);
+
+            // Optimistically update TanStack Query cache instantly (0ms!)
+            queryClient.setQueryData(["board", activeSprint?.id], (old: any) => {
+                if (!old?.issues) return old;
+                return {
+                    ...old,
+                    issues: old.issues.map((i: any) =>
+                        i.id === issueId || i.key === issueId
+                            ? { ...i, status: newStatus.toUpperCase() }
+                            : i
+                    ),
+                };
+            });
+
+            return { previousBoard };
+        },
+        onError: (_err, _vars, context: any) => {
+            // Rollback on failure
+            if (context?.previousBoard) {
+                queryClient.setQueryData(["board", activeSprint?.id], context.previousBoard);
+            }
+        },
+        onSettled: () => {
+            // Sync with backend in background
             queryClient.invalidateQueries({ queryKey: ["board", activeSprint?.id] });
         },
     });
@@ -170,18 +205,7 @@ export default function App() {
         tags: string[];
     }) => {
         if (!currentUser) {
-            // Local fallback for guest
-            const guestIssue = {
-                id: `TICK-${Date.now().toString().slice(-4)}`,
-                title: newIssueData.title,
-                description: newIssueData.description,
-                status: newIssueData.status,
-                priority: newIssueData.priority,
-                tags: newIssueData.tags,
-                createdAt: new Date().toISOString(),
-                order: Date.now(),
-            };
-            setLocalIssues((prev) => [...prev, guestIssue]);
+            navigate("auth");
             return;
         }
 
@@ -196,24 +220,25 @@ export default function App() {
     };
 
     const handleOpenCreateModal = (status: Status = "todo") => {
+        if (!currentUser) {
+            navigate("auth");
+            return;
+        }
         setDefaultModalStatus(status);
         setIsCreateModalOpen(true);
     };
 
     const handleMoveIssue = (issueId: string, newStatus: Status) => {
-        if (!boardData?.issues || boardData.issues.length === 0) {
-            setLocalIssues((prev) =>
-                prev.map((i) => (i.id === issueId || i.key === issueId ? { ...i, status: newStatus } : i))
-            );
+        if (!currentUser || !activeSprint?.id) {
+            navigate("auth");
+            return;
         }
 
-        if (currentUser && activeSprint?.id) {
-            moveIssueMutation.mutate({
-                issueId,
-                newStatus,
-                order: Date.now(),
-            });
-        }
+        moveIssueMutation.mutate({
+            issueId,
+            newStatus,
+            order: Date.now(),
+        });
     };
 
     const handleMoveToSprint = (issueId: string) => {
@@ -264,13 +289,15 @@ export default function App() {
 
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, []);
+    }, [currentUser]);
 
     if (currentView === "landing") {
         return (
             <LandingPage
                 onLaunchApp={() => navigate("app", "board")}
                 onOpenLogin={() => navigate("auth")}
+                currentUser={currentUser}
+                onLogout={handleLogout}
             />
         );
     }
@@ -294,9 +321,16 @@ export default function App() {
                 onSelectTab={(tab) => navigate("app", tab as TabType)}
                 onGoHome={() => navigate("landing")}
                 members={workspaceMembers}
+                currentUser={currentUser}
+                onOpenLogin={() => navigate("auth")}
             />
             <div className="flex-1 flex flex-col min-w-0 h-screen">
-                <Navbar onOpenNewIssue={() => handleOpenCreateModal("todo")} />
+                <Navbar
+                    onOpenNewIssue={() => handleOpenCreateModal("todo")}
+                    currentUser={currentUser}
+                    onOpenLogin={() => navigate("auth")}
+                    onLogout={handleLogout}
+                />
 
                 {activeTab === "board" && (
                     <FilterBar
@@ -331,6 +365,7 @@ export default function App() {
                         <SettingsView
                             currentUser={currentUser}
                             workspace={currentWorkspace}
+                            onMemberInvited={() => queryClient.invalidateQueries({ queryKey: ["auth", "me"] })}
                         />
                     )}
                 </main>

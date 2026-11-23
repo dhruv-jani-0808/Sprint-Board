@@ -1,5 +1,6 @@
 import { prisma } from "../config/db";
 import { Role } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const getWorkspaceBySlug = async (slug: string, userId: string) => {
     const workspace = await prisma.workspace.findUnique({ 
@@ -40,9 +41,18 @@ const getWorkspaceBySlug = async (slug: string, userId: string) => {
 };
 
 const inviteMember = async (workspaceId: string, email: string, role: Role = "MEMBER") => {
-    const targetUser = await prisma.user.findUnique({ where: { email } });
+    let targetUser = await prisma.user.findUnique({ where: { email } });
     if(!targetUser) {
-        throw new Error("No registered user found with this email");
+        const defaultName = email.split('@')[0];
+        const hashedPassword = await bcrypt.hash("Password123!", 10);
+        targetUser = await prisma.user.create({
+            data: {
+                name: defaultName,
+                email,
+                passwordHash: hashedPassword,
+                avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${defaultName}`,
+            },
+        });
     }
 
     const existingMember = await prisma.workspaceMember.findUnique({

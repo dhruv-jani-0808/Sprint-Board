@@ -13,9 +13,11 @@ interface SidebarProps {
   onSelectTab?: (tab: string) => void;
   onGoHome?: () => void;
   members?: any[];
+  currentUser?: any;
+  onOpenLogin?: () => void;
 }
 
-export function Sidebar({ activeTab = "board", onSelectTab, onGoHome, members = [] }: SidebarProps) {
+export function Sidebar({ activeTab = "board", onSelectTab, onGoHome, members = [], currentUser, onOpenLogin }: SidebarProps) {
   const navItems = [
     { id: "board", label: "Active Board", icon: Kanban },
     { id: "backlog", label: "Backlog", icon: Archive },
@@ -120,6 +122,20 @@ export function Sidebar({ activeTab = "board", onSelectTab, onGoHome, members = 
           )}
         </div>
       </div>
+
+      {/* Guest Mode Sign In Banner */}
+      {!currentUser && (
+        <div className="mx-3 my-2 p-3 rounded-xl bg-sky-950/40 border border-sky-800/40 text-center space-y-2">
+          <p className="text-[11px] text-slate-300 font-medium">Guest Mode</p>
+          <p className="text-[10px] text-slate-400">Sign in to create issues and manage real sprints.</p>
+          <button
+            onClick={onOpenLogin}
+            className="w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs py-1.5 rounded-lg shadow-sm transition-colors cursor-pointer"
+          >
+            Sign In / Sign Up
+          </button>
+        </div>
+      )}
 
       {/* 5. Footer Settings */}
       <div className="p-3 border-t border-slate-800">

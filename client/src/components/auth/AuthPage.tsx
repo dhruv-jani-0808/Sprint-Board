@@ -58,28 +58,6 @@ export function AuthPage({ onLoginSuccess, onGoHome }: AuthPageProps) {
                             : "Sign in to access your engineering sprint board."}
                     </p>
                 </div>
-                <div className="space-y-3">
-                    <button
-                        type="button"
-                        onClick={onLoginSuccess}
-                        className="w-full bg-slate-950 hover:bg-slate-800/80 border border-slate-800 text-slate-200 text-xs font-semibold py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all shadow-sm"
-                    >
-                        <span>Continue with GitHub</span>
-                    </button>
-                    <button
-                        type="button"
-                        onClick={onLoginSuccess}
-                        className="w-full bg-slate-950 hover:bg-slate-800/80 border border-slate-800 text-slate-200 text-xs font-semibold py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all shadow-sm"
-                    >
-                        <span>Continue with Google</span>
-                    </button>
-                </div>
-                <div className="relative flex items-center justify-center">
-                    <div className="border-t border-slate-800 w-full" />
-                    <span className="bg-slate-900 px-3 text-[11px] text-slate-500 uppercase tracking-wider font-mono absolute">
-                        or email
-                    </span>
-                </div>
 
                 {error && (
                     <div className="bg-red-950/50 border border-red-800/60 text-red-300 text-xs px-3 py-2 rounded-lg">
