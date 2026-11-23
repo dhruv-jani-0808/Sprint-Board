@@ -144,7 +144,7 @@ export function KanbanColumn({
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 custom-scrollbar min-h-[150px]">
+            <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 pb-16 custom-scrollbar min-h-[150px]">
                 {issues.length > 0 ? (
                     issues.map((issue) => (
                         <IssueCard
