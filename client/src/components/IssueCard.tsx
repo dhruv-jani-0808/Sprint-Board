@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import type { Issue, Priority } from "../types/sprint";
-import { AlertCircle, ArrowUp, ArrowRight, ArrowDown, GripVertical, UserX, Check } from "lucide-react";
+import { AlertCircle, ArrowUp, ArrowRight, ArrowDown, GripVertical, UserX, Check, Trash2 } from "lucide-react";
 
 interface IssueCardProps {
     issue: Issue;
     onClick?: (issue: Issue) => void;
     members?: any[];
     onUpdateAssignee?: (issueId: string, assigneeId: string | null) => void;
+    onDelete?: (issueId: string) => void;
 }
 
 const getPriorityBadge = (priority: Priority) => {
@@ -38,7 +39,7 @@ const getPriorityBadge = (priority: Priority) => {
     }
 };
 
-export function IssueCard({ issue, onClick, members = [], onUpdateAssignee }: IssueCardProps) {
+export function IssueCard({ issue, onClick, members = [], onUpdateAssignee, onDelete }: IssueCardProps) {
     const [isAssigneePickerOpen, setIsAssigneePickerOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -83,9 +84,26 @@ export function IssueCard({ issue, onClick, members = [], onUpdateAssignee }: Is
                         {issue.id}
                     </span>
                 </div>
-                <div className={`flex items-center gap-1 border px-2 py-0.5 rounded text-[11px] font-medium ${priorityBadge.className}`}>
-                    <PriorityIcon className="w-3 h-3" />
-                    <span>{priorityBadge.label}</span>
+                <div className="flex items-center gap-1.5">
+                    <div className={`flex items-center gap-1 border px-2 py-0.5 rounded text-[11px] font-medium ${priorityBadge.className}`}>
+                        <PriorityIcon className="w-3 h-3" />
+                        <span>{priorityBadge.label}</span>
+                    </div>
+                    {onDelete && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (window.confirm(`Delete issue ${issue.id}?`)) {
+                                    onDelete(issue.backendId || issue.id);
+                                }
+                            }}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-red-400 hover:bg-red-950/40 rounded transition-all cursor-pointer"
+                            title="Delete issue"
+                        >
+                            <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                    )}
                 </div>
             </div>
 

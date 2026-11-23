@@ -254,6 +254,45 @@ export default function App() {
         updateAssigneeMutation.mutate({ issueId, assigneeId });
     };
 
+    // Optimistic Delete Mutation (0ms delay)
+    const deleteIssueMutation = useMutation({
+        mutationFn: (issueId: string) => {
+            const targetIssue = rawIssues.find((i: any) => i.id === issueId || i.key === issueId);
+            const actualId = targetIssue?.id || issueId;
+            return issueApi.delete(actualId, activeSprint?.id);
+        },
+        onMutate: async (issueId: string) => {
+            await queryClient.cancelQueries({ queryKey: ["board", activeSprint?.id] });
+            const previousBoard = queryClient.getQueryData(["board", activeSprint?.id]);
+
+            queryClient.setQueryData(["board", activeSprint?.id], (old: any) => {
+                if (!old?.issues) return old;
+                return {
+                    ...old,
+                    issues: old.issues.filter((i: any) => i.id !== issueId && i.key !== issueId),
+                };
+            });
+
+            return { previousBoard };
+        },
+        onError: (_err, _vars, context: any) => {
+            if (context?.previousBoard) {
+                queryClient.setQueryData(["board", activeSprint?.id], context.previousBoard);
+            }
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["board", activeSprint?.id] });
+        },
+    });
+
+    const handleDeleteIssue = (issueId: string) => {
+        if (!currentUser) {
+            navigate("auth");
+            return;
+        }
+        deleteIssueMutation.mutate(issueId);
+    };
+
     const handleCreateIssue = (newIssueData: {
         title: string;
         description: string;
@@ -411,6 +450,7 @@ export default function App() {
                             onMoveIssue={handleMoveIssue}
                             members={workspaceMembers}
                             onUpdateAssignee={handleUpdateAssignee}
+                            onDeleteIssue={handleDeleteIssue}
                         />
                     )}
                     {activeTab === "backlog" && (
@@ -418,6 +458,7 @@ export default function App() {
                             issues={issues}
                             onMoveToSprint={handleMoveToSprint}
                             onOpenNewIssue={() => handleOpenCreateModal("backlog")}
+                            onDeleteIssue={handleDeleteIssue}
                         />
                     )}
                     {activeTab === "analytics" && (

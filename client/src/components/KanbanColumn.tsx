@@ -12,6 +12,7 @@ interface KanbanColumnProps {
     members?: any[];
     onUpdateAssignee?: (issueId: string, assigneeId: string | null) => void;
     onSortColumn?: (status: Status, criteria: "priority" | "date") => void;
+    onDeleteIssue?: (issueId: string) => void;
 }
 
 export function KanbanColumn({
@@ -23,6 +24,7 @@ export function KanbanColumn({
     members = [],
     onUpdateAssignee,
     onSortColumn,
+    onDeleteIssue,
 }: KanbanColumnProps) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -153,6 +155,7 @@ export function KanbanColumn({
                             onClick={onCardClick}
                             members={members}
                             onUpdateAssignee={onUpdateAssignee}
+                            onDelete={onDeleteIssue}
                         />
                     ))
                 ) : (

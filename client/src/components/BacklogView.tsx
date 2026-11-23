@@ -1,14 +1,15 @@
 import { useState } from "react";
-import { Plus, Search, Layers, ArrowUpRight, User } from "lucide-react";
+import { Plus, Search, Layers, ArrowUpRight, User, Trash2 } from "lucide-react";
 import type { Issue } from "../types/sprint";
 
 interface BacklogViewProps {
     issues: Issue[];
     onMoveToSprint?: (issueId: string) => void;
     onOpenNewIssue?: () => void;
+    onDeleteIssue?: (issueId: string) => void;
 }
 
-export function BacklogView({ issues, onMoveToSprint, onOpenNewIssue }: BacklogViewProps) {
+export function BacklogView({ issues, onMoveToSprint, onOpenNewIssue, onDeleteIssue }: BacklogViewProps) {
     const [searchQuery, setSearchQuery] = useState("");
     
     const backlogIssues = issues.filter((issue) => {
@@ -130,6 +131,20 @@ export function BacklogView({ issues, onMoveToSprint, onOpenNewIssue }: BacklogV
                                         <span>Move to Sprint 24</span>
                                         <ArrowUpRight className="w-3 h-3 text-slate-400" />
                                     </button>
+                                    {onDeleteIssue && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (window.confirm(`Delete issue ${issue.id}?`)) {
+                                                    onDeleteIssue(issue.backendId || issue.id);
+                                                }
+                                            }}
+                                            className="p-1 text-slate-500 hover:text-red-400 hover:bg-red-950/40 rounded transition-all cursor-pointer"
+                                            title="Delete issue"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         ))

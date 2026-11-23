@@ -10,6 +10,7 @@ interface KanbanBoardProps {
     onMoveIssue?: (issueId: string, newStatus: Status) => void;
     members?: any[];
     onUpdateAssignee?: (issueId: string, assigneeId: string | null) => void;
+    onDeleteIssue?: (issueId: string) => void;
 }
 
 const priorityRank: Record<string, number> = { urgent: 4, high: 3, medium: 2, low: 1 };
@@ -21,6 +22,7 @@ export function KanbanBoard({
     onMoveIssue,
     members = [],
     onUpdateAssignee,
+    onDeleteIssue,
 }: KanbanBoardProps) {
     const [sortConfig, setSortConfig] = useState<Record<string, "priority" | "date" | null>>({});
 
@@ -57,6 +59,7 @@ export function KanbanBoard({
                         members={members}
                         onUpdateAssignee={onUpdateAssignee}
                         onSortColumn={handleSortColumn}
+                        onDeleteIssue={onDeleteIssue}
                     />
                 );
             })}
