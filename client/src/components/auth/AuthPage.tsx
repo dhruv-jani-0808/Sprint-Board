@@ -4,9 +4,10 @@ import { authApi } from "../../api/client";
 
 interface AuthPageProps {
     onLoginSuccess?: () => void;
+    onGoHome?: () => void;
 }
 
-export function AuthPage({ onLoginSuccess }: AuthPageProps) {
+export function AuthPage({ onLoginSuccess, onGoHome }: AuthPageProps) {
     const [isSignUp, setIsSignUp] = useState(false);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -41,7 +42,11 @@ export function AuthPage({ onLoginSuccess }: AuthPageProps) {
         <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 select-none">
             <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-8 space-y-6">
                 <div className="text-center space-y-2">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-tr from-sky-600 to-teal-400 text-slate-950 shadow-lg shadow-sky-500/20 mb-2">
+                    <div 
+                        onClick={onGoHome}
+                        className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-tr from-sky-600 to-teal-400 text-slate-950 shadow-lg shadow-sky-500/20 mb-2 cursor-pointer hover:scale-105 transition-transform"
+                        title="Back to Home"
+                    >
                         <Flame className="w-7 h-7 fill-slate-950 stroke-none" />
                     </div>
                     <h1 className="text-2xl font-bold text-slate-100 tracking-tight">
@@ -160,15 +165,28 @@ export function AuthPage({ onLoginSuccess }: AuthPageProps) {
                         <ArrowRight className="w-4 h-4" />
                     </button>
                 </form>
-                <div className="text-center pt-2 text-xs text-slate-500">
-                    <span>{isSignUp ? "Already have an account? " : "Don't have an account? "}</span>
-                    <button
-                        type="button"
-                        onClick={() => setIsSignUp(!isSignUp)}
-                        className="text-sky-400 font-semibold hover:underline"
-                    >
-                        {isSignUp ? "Sign in" : "Create one now"}
-                    </button>
+                <div className="text-center pt-2 text-xs text-slate-500 space-y-2">
+                    <div>
+                        <span>{isSignUp ? "Already have an account? " : "Don't have an account? "}</span>
+                        <button
+                            type="button"
+                            onClick={() => setIsSignUp(!isSignUp)}
+                            className="text-sky-400 font-semibold hover:underline"
+                        >
+                            {isSignUp ? "Sign in" : "Create one now"}
+                        </button>
+                    </div>
+                    {onGoHome && (
+                        <div>
+                            <button
+                                type="button"
+                                onClick={onGoHome}
+                                className="text-slate-400 hover:text-slate-200 transition-colors"
+                            >
+                                ← Return to Home
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

@@ -14,13 +14,48 @@ import { LandingPage } from "./components/landing/LandingPage";
 
 import { authApi, sprintApi, issueApi } from "./api/client";
 import { useWebSocket } from "./hooks/useWebSocket";
-import { INITIAL_ISSUES } from "./data/mockIssues";
 import type { Issue, Priority, Status } from "./types/sprint";
+
+type ViewType = "landing" | "auth" | "app";
+type TabType = "board" | "backlog" | "analytics" | "settings";
+
+const getRouteFromUrl = (): { view: ViewType; tab: TabType } => {
+    if (typeof window === "undefined") return { view: "landing", tab: "board" };
+    const path = window.location.pathname.replace(/^\/+/, "").toLowerCase();
+    if (path === "auth" || path === "login") return { view: "auth", tab: "board" };
+    if (path === "app" || path === "board") return { view: "app", tab: "board" };
+    if (path === "backlog") return { view: "app", tab: "backlog" };
+    if (path === "analytics") return { view: "app", tab: "analytics" };
+    if (path === "settings") return { view: "app", tab: "settings" };
+    return { view: "landing", tab: "board" };
+};
 
 export default function App() {
     const queryClient = useQueryClient();
-    const [currentView, setCurrentView] = useState<"landing" | "auth" | "app">("landing");
-    const [activeTab, setActiveTab] = useState<"board" | "backlog" | "analytics" | "settings">("board");
+    const initialRoute = useMemo(() => getRouteFromUrl(), []);
+    const [currentView, setCurrentView] = useState<ViewType>(initialRoute.view);
+    const [activeTab, setActiveTab] = useState<TabType>(initialRoute.tab);
+
+    const navigate = (view: ViewType, tab: TabType = "board") => {
+        setCurrentView(view);
+        setActiveTab(tab);
+        let targetPath = "/";
+        if (view === "auth") targetPath = "/auth";
+        else if (view === "app") targetPath = tab === "board" ? "/board" : `/${tab}`;
+        if (window.location.pathname !== targetPath) {
+            window.history.pushState({ view, tab }, "", targetPath);
+        }
+    };
+
+    useEffect(() => {
+        const handlePopState = () => {
+            const route = getRouteFromUrl();
+            setCurrentView(route.view);
+            setActiveTab(route.tab);
+        };
+        window.addEventListener("popstate", handlePopState);
+        return () => window.removeEventListener("popstate", handlePopState);
+    }, []);
 
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedPriority, setSelectedPriority] = useState<Priority | "all">("all");
@@ -39,12 +74,6 @@ export default function App() {
     const currentUser = authData?.user;
     const currentWorkspace = currentUser?.memberships?.[0]?.workspace;
 
-    useEffect(() => {
-        if (currentUser && currentView === "landing") {
-            setCurrentView("app");
-        }
-    }, [currentUser, currentView]);
-
     const { data: sprintData } = useQuery({
         queryKey: ["sprint", "active", currentWorkspace?.id],
         queryFn: () => sprintApi.getActive(currentWorkspace.id),
@@ -59,11 +88,31 @@ export default function App() {
         enabled: !!activeSprint?.id,
     });
 
-    const [mockIssues, setMockIssues] = useState<any[]>(INITIAL_ISSUES);
+    // Clean initial issues (no mock cards)
+    const [localIssues, setLocalIssues] = useState<any[]>([]);
 
     const rawIssues: any[] = boardData?.issues && boardData.issues.length > 0
         ? boardData.issues
-        : mockIssues;
+        : localIssues;
+
+    const workspaceMembers = useMemo(() => {
+        if (!currentUser) return [];
+        const members = currentWorkspace?.members || [];
+        if (members.length > 0) {
+            return members.map((m: any) => ({
+                id: m.user?.id || m.userId || m.id,
+                name: m.user?.name || m.name,
+                email: m.user?.email || m.email,
+                avatar: m.user?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.user?.name || "user"}`,
+            }));
+        }
+        return [{
+            id: currentUser.id,
+            name: currentUser.name,
+            email: currentUser.email,
+            avatar: currentUser.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.name}`,
+        }];
+    }, [currentUser, currentWorkspace]);
 
     const issues: Issue[] = useMemo(() => {
         return rawIssues.map((i: any) => ({
@@ -78,7 +127,7 @@ export default function App() {
                     id: i.assignee.id,
                     name: i.assignee.name,
                     email: i.assignee.email || "",
-                    avatar: i.assignee.avatarUrl || i.assignee.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
+                    avatar: i.assignee.avatarUrl || i.assignee.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${i.assignee.name}`,
                 }
                 : null,
             tags: i.tags || [],
@@ -120,6 +169,22 @@ export default function App() {
         assigneeId: string;
         tags: string[];
     }) => {
+        if (!currentUser) {
+            // Local fallback for guest
+            const guestIssue = {
+                id: `TICK-${Date.now().toString().slice(-4)}`,
+                title: newIssueData.title,
+                description: newIssueData.description,
+                status: newIssueData.status,
+                priority: newIssueData.priority,
+                tags: newIssueData.tags,
+                createdAt: new Date().toISOString(),
+                order: Date.now(),
+            };
+            setLocalIssues((prev) => [...prev, guestIssue]);
+            return;
+        }
+
         createIssueMutation.mutate({
             title: newIssueData.title,
             description: newIssueData.description,
@@ -136,18 +201,19 @@ export default function App() {
     };
 
     const handleMoveIssue = (issueId: string, newStatus: Status) => {
-        // If viewing mock issues before DB issues exist, update local state immediately
         if (!boardData?.issues || boardData.issues.length === 0) {
-            setMockIssues((prev) =>
+            setLocalIssues((prev) =>
                 prev.map((i) => (i.id === issueId || i.key === issueId ? { ...i, status: newStatus } : i))
             );
         }
 
-        moveIssueMutation.mutate({
-            issueId,
-            newStatus,
-            order: Date.now(),
-        });
+        if (currentUser && activeSprint?.id) {
+            moveIssueMutation.mutate({
+                issueId,
+                newStatus,
+                order: Date.now(),
+            });
+        }
     };
 
     const handleMoveToSprint = (issueId: string) => {
@@ -203,8 +269,8 @@ export default function App() {
     if (currentView === "landing") {
         return (
             <LandingPage
-                onLaunchApp={() => setCurrentView("app")}
-                onOpenLogin={() => setCurrentView("auth")}
+                onLaunchApp={() => navigate("app", "board")}
+                onOpenLogin={() => navigate("auth")}
             />
         );
     }
@@ -214,8 +280,9 @@ export default function App() {
             <AuthPage
                 onLoginSuccess={() => {
                     queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
-                    setCurrentView("app");
+                    navigate("app", "board");
                 }}
+                onGoHome={() => navigate("landing")}
             />
         );
     }
@@ -224,7 +291,9 @@ export default function App() {
         <div className="flex h-screen overflow-hidden bg-slate-950 text-slate-100 select-none">
             <Sidebar
                 activeTab={activeTab}
-                onSelectTab={(tab) => setActiveTab(tab as any)}
+                onSelectTab={(tab) => navigate("app", tab as TabType)}
+                onGoHome={() => navigate("landing")}
+                members={workspaceMembers}
             />
             <div className="flex-1 flex flex-col min-w-0 h-screen">
                 <Navbar onOpenNewIssue={() => handleOpenCreateModal("todo")} />
@@ -239,6 +308,7 @@ export default function App() {
                         selectedAssigneeId={selectedAssigneeId}
                         onAssigneeChange={setSelectedAssigneeId}
                         onOpenNewIssue={() => handleOpenCreateModal("todo")}
+                        members={workspaceMembers}
                     />
                 )}
                 <main className="flex-1 overflow-hidden flex flex-col bg-slate-950">
@@ -257,13 +327,19 @@ export default function App() {
                         />
                     )}
                     {activeTab === "analytics" && <AnalyticsView issues={issues} />}
-                    {activeTab === "settings" && <SettingsView />}
+                    {activeTab === "settings" && (
+                        <SettingsView
+                            currentUser={currentUser}
+                            workspace={currentWorkspace}
+                        />
+                    )}
                 </main>
                 <CreateIssueModal
                     isOpen={isCreateModalOpen}
                     onClose={() => setIsCreateModalOpen(false)}
                     onCreateIssue={handleCreateIssue}
                     defaultStatus={defaultModalStatus}
+                    users={workspaceMembers}
                 />
             </div>
         </div>

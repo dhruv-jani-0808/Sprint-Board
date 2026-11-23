@@ -1,6 +1,5 @@
 import { Search, ChevronDown, X, Plus } from "lucide-react";
 import type { Priority } from "../types/sprint";
-import { MOCK_USERS } from "../data/mockIssues";
 
 interface FilterBarProps {
     searchInputRef?: React.RefObject<HTMLInputElement | null>;
@@ -11,6 +10,7 @@ interface FilterBarProps {
     selectedAssigneeId: string | 'all';
     onAssigneeChange: (assigneeId: string | 'all') => void;
     onOpenNewIssue?: () => void;
+    members?: any[];
 };
 
 export function FilterBar({
@@ -22,6 +22,7 @@ export function FilterBar({
     selectedAssigneeId,
     onAssigneeChange,
     onOpenNewIssue,
+    members = [],
 }: FilterBarProps) {
     return (
         <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-3.5 bg-slate-950 border-b border-slate-800/80 text-sm select-none">
@@ -66,42 +67,44 @@ export function FilterBar({
                 </div>
             </div>
             <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-medium text-slate-400 mr-1">Assignees:</span>
-                    <button
-                        type="button"
-                        onClick={() => onAssigneeChange("all")}
-                        className={`px-2.5 py-1 text-xs font-medium rounded-full border transition-all ${
-                            selectedAssigneeId === "all"
-                                ? "bg-sky-950/60 border-sky-500 text-sky-400"
-                                : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
-                        }`}
-                    >
-                        All
-                    </button>
-                    {MOCK_USERS.map((user) => {
-                        const isSelected = selectedAssigneeId === user.id;
-                        return (
-                            <button
-                                key={user.id}
-                                type="button"
-                                onClick={() => onAssigneeChange(isSelected ? "all" : user.id)}
-                                className={`w-7 h-7 rounded-full overflow-hidden transition-all ${
-                                    isSelected
-                                        ? "border-2 border-sky-500 ring-2 ring-sky-500/20 scale-105"
-                                        : "border border-slate-800 hover:border-slate-600 opacity-60 hover:opacity-100"
-                                }`}
-                                title={user.name}
-                            >
-                                <img
-                                    src={user.avatar}
-                                    alt={user.name}
-                                    className="w-full h-full object-cover"
-                                />
-                            </button>
-                        );
-                    })}
-                </div>
+                {members && members.length > 0 && (
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-medium text-slate-400 mr-1">Assignees:</span>
+                        <button
+                            type="button"
+                            onClick={() => onAssigneeChange("all")}
+                            className={`px-2.5 py-1 text-xs font-medium rounded-full border transition-all ${
+                                selectedAssigneeId === "all"
+                                    ? "bg-sky-950/60 border-sky-500 text-sky-400"
+                                    : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
+                            }`}
+                        >
+                            All
+                        </button>
+                        {members.map((user) => {
+                            const isSelected = selectedAssigneeId === user.id;
+                            return (
+                                <button
+                                    key={user.id}
+                                    type="button"
+                                    onClick={() => onAssigneeChange(isSelected ? "all" : user.id)}
+                                    className={`w-7 h-7 rounded-full overflow-hidden transition-all ${
+                                        isSelected
+                                            ? "border-2 border-sky-500 ring-2 ring-sky-500/20 scale-105"
+                                            : "border border-slate-800 hover:border-slate-600 opacity-60 hover:opacity-100"
+                                    }`}
+                                    title={user.name}
+                                >
+                                    <img
+                                        src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`}
+                                        alt={user.name}
+                                        className="w-full h-full object-cover"
+                                    />
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
                 <button
                     type="button"
                     onClick={onOpenNewIssue}

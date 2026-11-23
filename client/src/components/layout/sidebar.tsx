@@ -7,14 +7,15 @@ import {
   Flame,
   CheckCircle2
 } from "lucide-react";
-import { MOCK_USERS } from "../../data/mockIssues";
 
 interface SidebarProps {
   activeTab?: string;
   onSelectTab?: (tab: string) => void;
+  onGoHome?: () => void;
+  members?: any[];
 }
 
-export function Sidebar({ activeTab = "board", onSelectTab }: SidebarProps) {
+export function Sidebar({ activeTab = "board", onSelectTab, onGoHome, members = [] }: SidebarProps) {
   const navItems = [
     { id: "board", label: "Active Board", icon: Kanban },
     { id: "backlog", label: "Backlog", icon: Archive },
@@ -23,13 +24,17 @@ export function Sidebar({ activeTab = "board", onSelectTab }: SidebarProps) {
 
   return (
     <aside className="w-64 border-r border-slate-800 bg-slate-950 flex flex-col h-screen sticky top-0 shrink-0 select-none">
-      {/* 1. App Brand Header */}
-      <div className="h-14 px-5 border-b border-slate-800 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-teal-400 flex items-center justify-center text-slate-950 shadow-md shadow-brand-500/20">
+      {/* 1. App Brand Header (Clickable to go home) */}
+      <div 
+        onClick={onGoHome}
+        className="h-14 px-5 border-b border-slate-800 flex items-center gap-3 cursor-pointer hover:bg-slate-900/60 transition-colors group"
+        title="Go to Home"
+      >
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-teal-400 flex items-center justify-center text-slate-950 shadow-md shadow-brand-500/20 group-hover:scale-105 transition-transform">
           <Flame className="w-5 h-5 fill-slate-950 stroke-none" />
         </div>
         <div>
-          <h1 className="text-sm font-bold text-slate-100 tracking-tight leading-none">
+          <h1 className="text-sm font-bold text-slate-100 tracking-tight leading-none group-hover:text-brand-400 transition-colors">
             SprintHub
           </h1>
           <span className="text-[10px] text-slate-500 font-medium">
@@ -70,49 +75,51 @@ export function Sidebar({ activeTab = "board", onSelectTab }: SidebarProps) {
             <CheckCircle2 className="w-3.5 h-3.5 text-brand-500" />
             Sprint 24
           </span>
-          <span className="text-[11px] font-bold text-brand-500">65%</span>
+          <span className="text-[11px] font-bold text-brand-500">Active</span>
         </div>
         
         {/* Progress Track */}
         <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-          <div className="h-full bg-brand-500 rounded-full transition-all duration-500" style={{ width: "65%" }} />
+          <div className="h-full bg-brand-500 rounded-full transition-all duration-500" style={{ width: "100%" }} />
         </div>
         
         <p className="text-[10px] text-slate-500 mt-2">
-          8 of 12 issues completed
+          Sprint in progress
         </p>
-    </div>
+      </div>
 
       {/* 4. Team Members List */}
-        <div className="p-3 flex-1 overflow-y-auto">
+      <div className="p-3 flex-1 overflow-y-auto">
         <p className="px-3 py-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex items-center justify-between">
-            <span>Assignees</span>
-            <Users className="w-3 h-3 text-slate-500" />
+          <span>Assignees</span>
+          <Users className="w-3 h-3 text-slate-500" />
         </p>
         <div className="mt-1 space-y-1">
-            {MOCK_USERS.map((user) => (
-            <div
+          {members && members.length > 0 ? (
+            members.map((user) => (
+              <div
                 key={user.id}
                 className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-slate-900/50 cursor-pointer transition-colors"
-            >
-                {/* Fixed Avatar Container */}
+              >
                 <div className="w-6 h-6 rounded-full overflow-hidden shrink-0 bg-slate-800 ring-1 ring-slate-700">
-                <img
-                src={user.avatar}
-                alt={user.name}
-                width="24"
-                height="24"
-                className="w-6 h-6 rounded-full object-cover shrink-0"
-                style={{ width: "24px", height: "24px" }}
-                />
+                  <img
+                    src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`}
+                    alt={user.name}
+                    width="24"
+                    height="24"
+                    className="w-6 h-6 rounded-full object-cover shrink-0"
+                  />
                 </div>
                 <span className="text-xs text-slate-300 font-medium truncate">
-                {user.name}
+                  {user.name}
                 </span>
-            </div>
-            ))}
+              </div>
+            ))
+          ) : (
+            <p className="px-3 py-2 text-xs text-slate-500 italic">No assignees yet</p>
+          )}
         </div>
-        </div>
+      </div>
 
       {/* 5. Footer Settings */}
       <div className="p-3 border-t border-slate-800">

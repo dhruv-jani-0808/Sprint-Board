@@ -1,7 +1,6 @@
 import { X } from "lucide-react";
 import type { Priority, Status } from "../types/sprint";
 import { useEffect, useState, type FormEvent } from "react";
-import { MOCK_USERS } from "../data/mockIssues";
 
 interface CreateIssueModalProps {
   isOpen: boolean,
@@ -121,7 +120,7 @@ export function CreateIssueModal({isOpen, onClose, onCreateIssue, defaultStatus,
                                 className="w-full bg-slate-950 border border-slate-800 focus:border-sky-500/80 rounded-lg px-3 py-2 text-sm text-slate-200 outline-none transition-colors cursor-pointer"
                             >
                                 <option value="">Unassigned</option>
-                                {(users && users.length > 0 ? users : MOCK_USERS).map((user) => (
+                                {(users || []).map((user) => (
                                     <option key={user.id} value={user.id}>
                                         {user.name}
                                     </option>
