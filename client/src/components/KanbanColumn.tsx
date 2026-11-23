@@ -1,4 +1,5 @@
-import { Plus, MoreHorizontal } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Plus, MoreHorizontal, ArrowUpDown, Clock } from "lucide-react";
 import type { Column, Issue, Status } from "../types/sprint";
 import { IssueCard } from "./IssueCard";
 
@@ -8,9 +9,36 @@ interface KanbanColumnProps {
     onAddIssue?: (status: Status) => void;
     onCardClick?: (issue: Issue) => void;
     onMoveIssue?: (issueId: string, newStatus: Status) => void;
+    members?: any[];
+    onUpdateAssignee?: (issueId: string, assigneeId: string | null) => void;
+    onSortColumn?: (status: Status, criteria: "priority" | "date") => void;
 }
 
-export function KanbanColumn({ column, issues, onAddIssue, onCardClick, onMoveIssue }: KanbanColumnProps) {
+export function KanbanColumn({
+    column,
+    issues,
+    onAddIssue,
+    onCardClick,
+    onMoveIssue,
+    members = [],
+    onUpdateAssignee,
+    onSortColumn,
+}: KanbanColumnProps) {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    // Close menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                setIsMenuOpen(false);
+            }
+        };
+        if (isMenuOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [isMenuOpen]);
 
     const getStatusDotColor = (status: Status) => {
         switch (status) {
@@ -38,7 +66,7 @@ export function KanbanColumn({ column, issues, onAddIssue, onCardClick, onMoveIs
                     onMoveIssue(issueId, column.id);
                 }
             }}
-            className="flex-1 min-w-0 w-full flex flex-col bg-slate-900/40 rounded-lg border border-slate-800/60 p-2.5 max-h-full transition-colors"
+            className="flex-1 min-w-0 w-full flex flex-col bg-slate-900/40 rounded-lg border border-slate-800/60 p-2.5 max-h-full transition-colors relative"
         >
             <div className="flex items-center justify-between px-1 py-1.5 mb-2">
                 <div className="flex items-center gap-2">
@@ -51,28 +79,81 @@ export function KanbanColumn({ column, issues, onAddIssue, onCardClick, onMoveIs
                     </span>
                 </div>
 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 relative" ref={menuRef}>
                     <button
                         type="button"
                         onClick={() => onAddIssue?.(column.id)}
-                        className="p-1 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
-                        title="Add issue"
+                        className="p-1 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors cursor-pointer"
+                        title={`Add issue to ${column.title}`}
                     >
                         <Plus className="w-4 h-4" />
                     </button>
                     <button
                         type="button"
-                        className="p-1 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        className={`p-1 rounded-md transition-colors cursor-pointer ${
+                            isMenuOpen ? "bg-slate-800 text-slate-200" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                        }`}
+                        title="Column actions"
                     >
                         <MoreHorizontal className="w-4 h-4" />
                     </button>
+
+                    {/* Column 3-Dots Dropdown Menu */}
+                    {isMenuOpen && (
+                        <div className="absolute right-0 top-full mt-1.5 w-48 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl py-1 z-40 text-xs divide-y divide-slate-800/60">
+                            <div className="p-1">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsMenuOpen(false);
+                                        onAddIssue?.(column.id);
+                                    }}
+                                    className="w-full flex items-center gap-2 px-2.5 py-1.5 text-slate-300 hover:text-slate-100 hover:bg-slate-800 rounded-lg transition-colors text-left"
+                                >
+                                    <Plus className="w-3.5 h-3.5 text-sky-400" />
+                                    <span>Add Issue to {column.title}</span>
+                                </button>
+                            </div>
+                            <div className="p-1 space-y-0.5">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsMenuOpen(false);
+                                        onSortColumn?.(column.id, "priority");
+                                    }}
+                                    className="w-full flex items-center gap-2 px-2.5 py-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors text-left"
+                                >
+                                    <ArrowUpDown className="w-3.5 h-3.5" />
+                                    <span>Sort by Priority</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsMenuOpen(false);
+                                        onSortColumn?.(column.id, "date");
+                                    }}
+                                    className="w-full flex items-center gap-2 px-2.5 py-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors text-left"
+                                >
+                                    <Clock className="w-3.5 h-3.5" />
+                                    <span>Sort by Newest</span>
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 custom-scrollbar min-h-[150px]">
                 {issues.length > 0 ? (
                     issues.map((issue) => (
-                        <IssueCard key={issue.id} issue={issue} onClick={onCardClick} />
+                        <IssueCard
+                            key={issue.id}
+                            issue={issue}
+                            onClick={onCardClick}
+                            members={members}
+                            onUpdateAssignee={onUpdateAssignee}
+                        />
                     ))
                 ) : (
                     <div className="h-32 flex items-center justify-center border border-dashed border-slate-800 rounded-lg text-xs text-slate-600 font-medium">

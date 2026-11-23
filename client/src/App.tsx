@@ -196,6 +196,64 @@ export default function App() {
         },
     });
 
+    // Optimistic Assignee Change Mutation (0ms delay)
+    const updateAssigneeMutation = useMutation({
+        mutationFn: ({ issueId, assigneeId }: { issueId: string; assigneeId: string | null }) => {
+            const targetIssue = rawIssues.find((i: any) => i.id === issueId || i.key === issueId);
+            const actualId = targetIssue?.id || issueId;
+            return issueApi.update(actualId, { assigneeId }, activeSprint?.id);
+        },
+        onMutate: async ({ issueId, assigneeId }) => {
+            await queryClient.cancelQueries({ queryKey: ["board", activeSprint?.id] });
+            const previousBoard = queryClient.getQueryData(["board", activeSprint?.id]);
+
+            const assignedMember = assigneeId
+                ? workspaceMembers.find((m: any) => m.id === assigneeId) || null
+                : null;
+
+            queryClient.setQueryData(["board", activeSprint?.id], (old: any) => {
+                if (!old?.issues) return old;
+                return {
+                    ...old,
+                    issues: old.issues.map((i: any) =>
+                        i.id === issueId || i.key === issueId
+                            ? {
+                                ...i,
+                                assigneeId,
+                                assignee: assignedMember
+                                    ? {
+                                        id: assignedMember.id,
+                                        name: assignedMember.name,
+                                        email: assignedMember.email,
+                                        avatar: assignedMember.avatar,
+                                    }
+                                    : null,
+                            }
+                            : i
+                    ),
+                };
+            });
+
+            return { previousBoard };
+        },
+        onError: (_err, _vars, context: any) => {
+            if (context?.previousBoard) {
+                queryClient.setQueryData(["board", activeSprint?.id], context.previousBoard);
+            }
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["board", activeSprint?.id] });
+        },
+    });
+
+    const handleUpdateAssignee = (issueId: string, assigneeId: string | null) => {
+        if (!currentUser) {
+            navigate("auth");
+            return;
+        }
+        updateAssigneeMutation.mutate({ issueId, assigneeId });
+    };
+
     const handleCreateIssue = (newIssueData: {
         title: string;
         description: string;
@@ -351,6 +409,8 @@ export default function App() {
                             issues={filteredIssues}
                             onAddIssue={(status) => handleOpenCreateModal(status)}
                             onMoveIssue={handleMoveIssue}
+                            members={workspaceMembers}
+                            onUpdateAssignee={handleUpdateAssignee}
                         />
                     )}
                     {activeTab === "backlog" && (
@@ -360,7 +420,9 @@ export default function App() {
                             onOpenNewIssue={() => handleOpenCreateModal("backlog")}
                         />
                     )}
-                    {activeTab === "analytics" && <AnalyticsView issues={issues} />}
+                    {activeTab === "analytics" && (
+                        <AnalyticsView issues={issues} sprintName={activeSprint?.name} />
+                    )}
                     {activeTab === "settings" && (
                         <SettingsView
                             currentUser={currentUser}

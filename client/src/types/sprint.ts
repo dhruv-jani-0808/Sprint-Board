@@ -10,6 +10,7 @@ export interface User {
 
 export interface Issue {
     id: string,
+    backendId?: string,
     title: string,
     description: string,
     status: Status,

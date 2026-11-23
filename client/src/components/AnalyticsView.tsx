@@ -4,9 +4,10 @@ import { BarChart3, TrendingUp, CheckCircle2, Clock, Users } from "lucide-react"
 
 interface AnalyticsViewProps {
     issues: Issue[];
+    sprintName?: string;
 }
 
-export function AnalyticsView({ issues }: AnalyticsViewProps) {
+export function AnalyticsView({ issues, sprintName }: AnalyticsViewProps) {
     const totalIssues = issues.length;
     const completedIssues = issues.filter((i) => i.status === "done").length;
     const inProgressIssues = issues.filter((i) => i.status === "in_progress").length;
@@ -38,9 +39,10 @@ export function AnalyticsView({ issues }: AnalyticsViewProps) {
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <select className="bg-slate-900 border border-slate-800 text-slate-300 text-xs rounded-lg px-3 py-1.5 outline-none cursor-pointer">
-                        <option value="active">Active Sprint</option>
-                    </select>
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-300 font-medium">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <span>{sprintName || "Sprint 1"} (Active)</span>
+                    </div>
                 </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -1,9 +1,12 @@
+import { useState, useRef, useEffect } from "react";
 import type { Issue, Priority } from "../types/sprint";
-import { AlertCircle, ArrowUp, ArrowRight, ArrowDown, GripVertical, User } from "lucide-react";
+import { AlertCircle, ArrowUp, ArrowRight, ArrowDown, GripVertical, UserX, Check } from "lucide-react";
 
 interface IssueCardProps {
     issue: Issue;
     onClick?: (issue: Issue) => void;
+    members?: any[];
+    onUpdateAssignee?: (issueId: string, assigneeId: string | null) => void;
 }
 
 const getPriorityBadge = (priority: Priority) => {
@@ -35,9 +38,31 @@ const getPriorityBadge = (priority: Priority) => {
     }
 };
 
-export function IssueCard({ issue, onClick }: IssueCardProps) {
+export function IssueCard({ issue, onClick, members = [], onUpdateAssignee }: IssueCardProps) {
+    const [isAssigneePickerOpen, setIsAssigneePickerOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
     const priorityBadge = getPriorityBadge(issue.priority);
     const PriorityIcon = priorityBadge.icon;
+
+    // Close picker when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+                setIsAssigneePickerOpen(false);
+            }
+        };
+        if (isAssigneePickerOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [isAssigneePickerOpen]);
+
+    const handleSelectAssignee = (e: React.MouseEvent, assigneeId: string | null) => {
+        e.stopPropagation();
+        onUpdateAssignee?.(issue.backendId || issue.id, assigneeId);
+        setIsAssigneePickerOpen(false);
+    };
 
     return (
         <div
@@ -66,7 +91,7 @@ export function IssueCard({ issue, onClick }: IssueCardProps) {
                 {issue.title}
             </h4>
 
-            <div className="flex items-center justify-between pt-2 border-t border-slate-800/60">
+            <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 relative">
                 <div className="flex items-center gap-1.5 flex-wrap">
                     {issue.tags.map((tag) => (
                         <span
@@ -78,20 +103,102 @@ export function IssueCard({ issue, onClick }: IssueCardProps) {
                     ))}
                 </div>
 
-                <div className="flex items-center gap-2">
+                {/* Assignee Section with Click-to-Change Dropdown */}
+                <div className="relative" ref={dropdownRef}>
                     {issue.assignee ? (
-                        <img
-                            src={issue.assignee.avatar}
-                            alt={issue.assignee.name}
-                            title={issue.assignee.name}
-                            className="w-6 h-6 rounded-full border border-slate-700 bg-slate-800 object-cover"
-                        />
-                    ) : (
-                        <div
-                            title="Unassigned"
-                            className="w-6 h-6 rounded-full border border-dashed border-slate-700 bg-slate-900 text-slate-500 flex items-center justify-center"
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsAssigneePickerOpen(!isAssigneePickerOpen);
+                            }}
+                            className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700/80 border border-slate-700 text-xs text-slate-300 transition-colors cursor-pointer"
+                            title={`Assigned to ${issue.assignee.name} (Click to change)`}
                         >
-                            <User className="w-3 h-3" />
+                            <img
+                                src={issue.assignee.avatar}
+                                alt={issue.assignee.name}
+                                className="w-4 h-4 rounded-full object-cover"
+                            />
+                            <span className="text-[11px] font-medium truncate max-w-[80px]">
+                                {issue.assignee.name}
+                            </span>
+                        </button>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsAssigneePickerOpen(!isAssigneePickerOpen);
+                            }}
+                            className="px-2 py-0.5 rounded-full text-[11px] font-semibold text-red-400 bg-red-950/60 border border-red-800/60 hover:bg-red-900/60 transition-colors flex items-center gap-1 cursor-pointer"
+                            title="Click to assign member"
+                        >
+                            <UserX className="w-3 h-3 text-red-400" />
+                            <span>no assignees</span>
+                        </button>
+                    )}
+
+                    {/* Assignee Picker Popover */}
+                    {isAssigneePickerOpen && (
+                        <div
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute right-0 bottom-full mb-2 w-48 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl py-1 z-50 text-xs divide-y divide-slate-800/60"
+                        >
+                            <div className="p-1">
+                                <button
+                                    type="button"
+                                    onClick={(e) => handleSelectAssignee(e, null)}
+                                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg transition-colors text-left ${
+                                        !issue.assignee
+                                            ? "bg-red-950/40 text-red-400 font-semibold"
+                                            : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <UserX className="w-3.5 h-3.5 text-red-400" />
+                                        <span>No assignee</span>
+                                    </div>
+                                    {!issue.assignee && <Check className="w-3 h-3 text-red-400" />}
+                                </button>
+                            </div>
+
+                            <div className="p-1 max-h-40 overflow-y-auto">
+                                <p className="px-2 py-1 text-[10px] uppercase font-semibold text-slate-500">
+                                    Assign to:
+                                </p>
+                                {members.length > 0 ? (
+                                    members.map((member) => {
+                                        const isCurrent = issue.assignee?.id === member.id;
+                                        return (
+                                            <button
+                                                key={member.id}
+                                                type="button"
+                                                onClick={(e) => handleSelectAssignee(e, member.id)}
+                                                className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg transition-colors text-left ${
+                                                    isCurrent
+                                                        ? "bg-sky-950/50 text-sky-400 font-semibold"
+                                                        : "text-slate-300 hover:bg-slate-800 hover:text-slate-100"
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-2 truncate">
+                                                    <img
+                                                        src={member.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.name}`}
+                                                        alt={member.name}
+                                                        className="w-4 h-4 rounded-full object-cover shrink-0"
+                                                    />
+                                                    <span className="truncate">{member.name}</span>
+                                                </div>
+                                                {isCurrent && <Check className="w-3 h-3 text-sky-400 shrink-0" />}
+                                            </button>
+                                        );
+                                    })
+                                ) : (
+                                    <p className="px-2 py-1 text-slate-500 text-[11px] italic">
+                                        No members in workspace
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
