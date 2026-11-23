@@ -17,7 +17,7 @@ export function BacklogView({ issues, onMoveToSprint, onOpenNewIssue, onDeleteIs
         if(searchQuery.trim()) {
             const q = searchQuery.toLowerCase();
             return (
-                issue.id.toLowerCase().includes(q) || 
+                ((issue.key || issue.id).toLowerCase().includes(q) || issue.id.toLowerCase().includes(q)) || 
                 issue.title.toLowerCase().includes(q) ||
                 issue.tags.some((t) => t.toLocaleLowerCase().includes(q))
             );
@@ -78,7 +78,7 @@ export function BacklogView({ issues, onMoveToSprint, onOpenNewIssue, onDeleteIs
                             >
                                 <div className="flex items-center gap-3 min-w-0">
                                     <span className="text-xs font-mono text-sky-400/90 font-medium">
-                                        {issue.id}
+                                        {issue.key || issue.id}
                                     </span>
                                     <span className="text-sm text-slate-200 font-medium truncate">
                                         {issue.title}

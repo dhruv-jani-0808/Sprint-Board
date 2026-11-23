@@ -121,7 +121,8 @@ export default function App() {
 
     const issues: Issue[] = useMemo(() => {
         return rawIssues.map((i: any) => ({
-            id: i.key || i.id,
+            id: i.id,
+            key: i.key || i.id,
             backendId: i.id,
             title: i.title,
             description: i.description || "",
@@ -346,7 +347,7 @@ export default function App() {
         return issues.filter((issue) => {
             if (searchQuery.trim()) {
                 const query = searchQuery.toLowerCase();
-                const matchesId = issue.id.toLowerCase().includes(query);
+                const matchesId = (issue.key || issue.id).toLowerCase().includes(query) || issue.id.toLowerCase().includes(query);
                 const matchedTitle = issue.title.toLowerCase().includes(query);
                 const matchedTag = issue.tags.some((t) => t.toLowerCase().includes(query));
 

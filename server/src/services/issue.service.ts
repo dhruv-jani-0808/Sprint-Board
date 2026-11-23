@@ -35,10 +35,20 @@ export interface UpdateIssueInput {
 }
 
 const createIssue = async (data: CreateIssueInput) => {
-    const totalIssues = await prisma.issue.count({
+    const existingIssues = await prisma.issue.findMany({
         where: { workspaceId: data.workspaceId },
+        select: { key: true },
     });
-    const key = `DEV-${100 + totalIssues + 1}`;
+    let maxKeyNum = 100;
+    for (const item of existingIssues) {
+        if (item.key) {
+            const parsed = parseInt(item.key.replace("DEV-", ""), 10);
+            if (!isNaN(parsed) && parsed > maxKeyNum) {
+                maxKeyNum = parsed;
+            }
+        }
+    }
+    const key = `DEV-${maxKeyNum + 1}`;
 
     const lastIssue = await prisma.issue.findFirst({
         where: {

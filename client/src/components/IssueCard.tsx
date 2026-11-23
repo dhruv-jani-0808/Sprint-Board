@@ -81,7 +81,7 @@ export function IssueCard({ issue, onClick, members = [], onUpdateAssignee, onDe
                 <div className="flex items-center gap-2">
                     <GripVertical className="w-3.5 h-3.5 text-slate-600 group-hover:text-slate-400 transition-colors" />
                     <span className="text-xs font-mono font-medium text-sky-400/90 tracking-wide">
-                        {issue.id}
+                        {issue.key || issue.id}
                     </span>
                 </div>
                 <div className="flex items-center gap-1.5">
