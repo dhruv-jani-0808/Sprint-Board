@@ -10,7 +10,7 @@ export function useWebSocket(workspaceId?: string, sprintId?: string) {
 
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
         const wsUrl = window.location.hostname !== "localhost"
-            ? `${protocol}//${window.location.hostname}:5000`
+            ? `${protocol}//${window.location.host}/ws`
             : "ws://localhost:5000";
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;

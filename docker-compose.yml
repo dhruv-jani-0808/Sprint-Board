@@ -36,7 +36,7 @@ services:
     container_name: sprinthub-client
     restart: always
     ports:
-      - "80:80"
+      - "3000:80"
     depends_on:
       - server
     networks:
