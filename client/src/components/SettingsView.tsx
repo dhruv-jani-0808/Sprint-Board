@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Settings, Users, Bell, Trash2, Plus, Save, Check, X, Mail, Shield } from "lucide-react";
 import { workspaceApi } from "../api/client";
 
@@ -38,6 +38,15 @@ export function SettingsView({ onSaveSettings, currentUser, workspace, onMemberI
     const [members, setMembers] = useState<any[]>(initialMembers);
     const [isSaved, setIsSaved] = useState(false);
 
+    useEffect(() => {
+        if (workspace?.name) setWorkspaceName(workspace.name);
+        if (workspace?.slug) setWorkspaceSlug(workspace.slug);
+    }, [workspace?.name, workspace?.slug]);
+
+    useEffect(() => {
+        setMembers(initialMembers);
+    }, [initialMembers]);
+
     // Invite Modal State
     const [isInviteOpen, setIsInviteOpen] = useState(false);
     const [inviteEmail, setInviteEmail] = useState("");
@@ -50,14 +59,33 @@ export function SettingsView({ onSaveSettings, currentUser, workspace, onMemberI
     const [statusNotify, setStatusNotify] = useState(true);
     const [weeklySummary, setWeeklySummary] = useState(false);
 
-    const handleSave = () => {
+    const handleSave = async () => {
+        if (workspace?.id) {
+            try {
+                await workspaceApi.update(workspace.id, {
+                    name: workspaceName,
+                    slug: workspaceSlug,
+                });
+                onMemberInvited?.();
+            } catch (err: any) {
+                console.error("Failed to update workspace:", err);
+            }
+        }
         onSaveSettings?.({ name: workspaceName, slug: workspaceSlug });
         setIsSaved(true);
         setTimeout(() => setIsSaved(false), 2000);
     };
 
-    const handleRemoveMember = (id: string) => {
-        setMembers((prev: any[]) => prev.filter((m: any) => m.id !== id));
+    const handleRemoveMember = async (userId: string) => {
+        setMembers((prev: any[]) => prev.filter((m: any) => m.id !== userId));
+        if (workspace?.id) {
+            try {
+                await workspaceApi.removeMember(workspace.id, userId);
+                onMemberInvited?.();
+            } catch (err: any) {
+                console.error("Failed to remove member:", err);
+            }
+        }
     };
 
     const handleSendInvite = async (e: React.FormEvent) => {

@@ -48,4 +48,14 @@ const update = async (req: AuthenticatedRequest, res: Response): Promise<void> =
     }
 };
 
-export { getWorkspace, invite, update };
+const removeMember = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { id, userId } = req.params;
+        await WorkspaceService.removeMember(id.toString(), userId.toString());
+        res.status(200).json({ message: "Member removed successfully" });
+    } catch (error: any) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
+export { getWorkspace, invite, update, removeMember };

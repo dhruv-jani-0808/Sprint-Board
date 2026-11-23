@@ -48,6 +48,10 @@ export const workspaceApi = {
             method: "PATCH",
             body: JSON.stringify(data),
         }),
+    removeMember: (workspaceId: string, userId: string) =>
+        apiFetch<{ message: string }>(`/workspaces/${workspaceId}/members/${userId}`, {
+            method: "DELETE",
+        }),
 };
 
 export const sprintApi = {

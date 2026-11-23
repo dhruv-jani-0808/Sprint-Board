@@ -104,4 +104,16 @@ const updateWorkspace = async (workspaceId: string, data: { name?: string, slug?
     return updated;
 };
 
-export { getWorkspaceBySlug, inviteMember, updateWorkspace };
+const removeMember = async (workspaceId: string, userId: string) => {
+    await prisma.workspaceMember.delete({
+        where: {
+            workspaceId_userId: {
+                workspaceId,
+                userId,
+            },
+        },
+    });
+    return { success: true };
+};
+
+export { getWorkspaceBySlug, inviteMember, updateWorkspace, removeMember };
